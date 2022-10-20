@@ -1,8 +1,10 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { registerUser } from "../store/actions/authAction";
+import { useAlert } from "react-alert";
+import { ERROR_CLEAR, SUCCESS_MESSAGE_CLEAR } from "../store/types/authTypes";
 
 function Register() {
   const [state, setState] = useState({
@@ -17,19 +19,33 @@ function Register() {
 
   const dispatch = useDispatch();
 
-  const handleInputs = (e) => {
+  const alert = useAlert();
+
+  const navigate = useNavigate();
+
+  const { authenticate, error, successMessage, myInfo } = useSelector(
+    state => state.auth
+  );
+
+  const handleInputs = e => {
     setState({ ...state, [e.target.name]: e.target.value });
   };
 
-  const handleImage = (e) => {
-    const file = e.target.files[0];
+  const handleImage = e => {
+    if (e.target.files.length !== 0) {
+      setState({ ...state, [e.target.name]: e.target.files[0] });
 
-    setState({ ...state, [e.target.name]: file });
+      const reader = new FileReader();
 
-    setImageUrl(URL.createObjectURL(file));
+      reader.onload = () => {
+        setImageUrl(reader.result);
+      };
+
+      reader.readAsDataURL(e.target.files[0]);
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = e => {
     e.preventDefault();
 
     const data = new FormData();
@@ -42,6 +58,21 @@ function Register() {
 
     dispatch(registerUser(data));
   };
+
+  useEffect(() => {
+    if (authenticate) {
+      navigate("/");
+    }
+    if (successMessage) {
+      alert.success(successMessage);
+      dispatch({ type: SUCCESS_MESSAGE_CLEAR });
+    }
+
+    if (error) {
+      error.map(err => alert.error(err));
+      dispatch({ type: ERROR_CLEAR });
+    }
+  }, [successMessage, error]);
 
   return (
     <div className="register">
