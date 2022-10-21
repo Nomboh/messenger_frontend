@@ -5,7 +5,7 @@ import {
   SEND_MESSAGE_SUCCESS,
 } from "../types/messengerTypes";
 
-export const getFriends = () => async dispatch => {
+export const getFriends = () => async (dispatch) => {
   try {
     const response = await axios.get("/get-friends");
     dispatch({
@@ -19,7 +19,7 @@ export const getFriends = () => async dispatch => {
   }
 };
 
-export const messageSend = data => async dispatch => {
+export const messageSend = (data) => async (dispatch) => {
   try {
     const result = await axios.post("/send-message", data);
 
@@ -34,8 +34,8 @@ export const messageSend = data => async dispatch => {
   }
 };
 
-export const getMessages = id => {
-  return async dispatch => {
+export const getMessages = (id) => {
+  return async (dispatch) => {
     try {
       const res = await axios.get("/get-message/" + id);
       dispatch({
@@ -50,4 +50,17 @@ export const getMessages = id => {
   };
 };
 
-export const ImageMessageSend = data => async dispatch => {};
+export const ImageMessageSend = (data) => async (dispatch) => {
+  try {
+    const res = await axios.post(`/send-message-image`, data);
+
+    dispatch({
+      type: SEND_MESSAGE_SUCCESS,
+      payload: {
+        message: res.data.message,
+      },
+    });
+  } catch (error) {
+    console.log(error.response.data);
+  }
+};

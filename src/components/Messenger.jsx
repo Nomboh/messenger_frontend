@@ -11,21 +11,41 @@ import {
   messageSend,
 } from "../store/actions/messengerAction";
 import { useRef } from "react";
+import { io } from "socket.io-client";
 
 function Messenger() {
   const dispatch = useDispatch();
 
+  const scrollRef = useRef();
+  const socket = useRef();
+
   const [currentFriend, setCurrentFriend] = useState(null);
   const [newMessage, setNewMessage] = useState("");
 
-  const { friends, messages } = useSelector(state => state.messenger);
-  const { myInfo } = useSelector(state => state.auth);
+  const { friends, messages } = useSelector((state) => state.messenger);
+  const { myInfo } = useSelector((state) => state.auth);
 
-  const inputHandler = e => {
+  const [activeUser, setActiveUser] = useState(null);
+
+  useEffect(() => {
+    socket.current = io("ws://localhost:5000");
+  }, []);
+
+  useEffect(() => {
+    socket.current?.emit("addUser", myInfo.id, myInfo);
+  }, []);
+
+  useEffect(() => {
+    socket.current.on("getUser", (users) => {
+      const userFilter = users.filter((u) => u.userId !== myInfo.id);
+      setActiveUser(userFilter);
+    });
+  }, []);
+  const inputHandler = (e) => {
     setNewMessage(e.target.value);
   };
 
-  const sendMessage = e => {
+  const sendMessage = (e) => {
     e.preventDefault();
     const data = {
       senderName: myInfo.userName,
@@ -37,11 +57,11 @@ function Messenger() {
     setNewMessage("");
   };
 
-  const emojiSend = emu => {
+  const emojiSend = (emu) => {
     setNewMessage(`${newMessage}` + emu);
   };
 
-  const ImageSend = e => {
+  const ImageSend = (e) => {
     if (e.target.files.length !== 0) {
       const imagename = e.target.files[0].name;
       const newImageName = Date.now() + imagename;
@@ -49,14 +69,12 @@ function Messenger() {
       const formData = new FormData();
 
       formData.append("senderName", myInfo.userName);
-      formData.append("imagename", newImageName);
+      formData.append("imageName", newImageName);
       formData.append("recieverId", currentFriend._id);
       formData.append("image", e.target.files[0]);
       dispatch(ImageMessageSend(formData));
     }
   };
-
-  const scrollRef = useRef();
 
   useEffect(() => {
     dispatch(getFriends());
@@ -115,11 +133,15 @@ function Messenger() {
               </div>
             </div>
             <div className="active-friends">
-              <ActiveFriends />
+              {activeUser && activeUser.length > 0
+                ? activeUser.map((u) => (
+                    <ActiveFriends key={u.userId} user={u} />
+                  ))
+                : ""}
             </div>
             <div className="friends">
               {friends && friends.length > 0
-                ? friends.map(friend => (
+                ? friends.map((friend) => (
                     <div
                       onClick={() => setCurrentFriend(friend)}
                       key={friend._id}
